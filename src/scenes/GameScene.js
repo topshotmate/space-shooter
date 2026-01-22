@@ -946,30 +946,92 @@ class GameScene extends Phaser.Scene {
         flash.play('hit-effect');
         flash.on('animationcomplete', () => flash.destroy());
 
-        // Apply power-up effect
+        // Apply power-up effect with visual feedback
         switch (type) {
             case 0: // Weapon upgrade
                 if (this.weaponLevel < 3) {
                     this.weaponLevel++;
                     this.weaponText.setText(`Weapon: Lv.${this.weaponLevel}`);
+                    this.showPowerUpText('WEAPON UP!', 0x00ffff);
+                } else {
+                    this.showPowerUpText('MAX WEAPON!', 0x00ffff);
                 }
                 break;
             case 1: // Shield
                 this.activateShield();
+                this.showPowerUpText('SHIELD!', 0x00ffff);
                 break;
             case 2: // Score multiplier
                 this.scoreMultiplier = GameConfig.SCORE_MULTIPLIER;
+                this.showPowerUpText('2X SCORE!', 0xffff00);
+                this.showMultiplierIndicator();
                 this.time.delayedCall(GameConfig.POWERUP_DURATION, () => {
                     this.scoreMultiplier = 1;
+                    this.hideMultiplierIndicator();
                 });
                 break;
             case 3: // Extra life
                 this.lives++;
                 this.livesText.setText(`Lives: ${this.lives}`);
+                this.showPowerUpText('+1 LIFE!', 0x00ff00);
                 break;
         }
 
         powerUp.destroy();
+    }
+
+    showPowerUpText(message, color) {
+        const text = this.add.text(this.player.x, this.player.y - 50, message, {
+            fontSize: '24px',
+            fill: '#ffffff',
+            fontFamily: 'Courier New',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(100);
+
+        text.setTint(color);
+
+        // Animate text floating up and fading
+        this.tweens.add({
+            targets: text,
+            y: text.y - 60,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => text.destroy()
+        });
+    }
+
+    showMultiplierIndicator() {
+        if (this.multiplierText) return;
+
+        this.multiplierText = this.add.text(16, 80, '2X MULTIPLIER', {
+            fontSize: '18px',
+            fill: '#ffff00',
+            fontFamily: 'Courier New',
+            fontStyle: 'bold'
+        });
+
+        // Blinking effect
+        this.multiplierTween = this.tweens.add({
+            targets: this.multiplierText,
+            alpha: 0.3,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    hideMultiplierIndicator() {
+        if (this.multiplierTween) {
+            this.multiplierTween.stop();
+            this.multiplierTween = null;
+        }
+        if (this.multiplierText) {
+            this.multiplierText.destroy();
+            this.multiplierText = null;
+        }
     }
 
     activateShield() {
@@ -977,13 +1039,29 @@ class GameScene extends Phaser.Scene {
 
         this.hasShield = true;
 
-        // Visual shield effect
-        const shield = this.add.circle(0, 0, 30, 0x00ffff, 0.3);
-        shield.setStrokeStyle(2, 0x00ffff);
+        // Visual shield effect - larger and more visible
+        const shield = this.add.circle(0, 0, 40, 0x00ffff, 0.2);
+        shield.setStrokeStyle(3, 0x00ffff);
+        shield.setDepth(5);
         this.player.shield = shield;
+
+        // Pulsing effect for shield
+        this.player.shieldTween = this.tweens.add({
+            targets: shield,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            alpha: 0.4,
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
 
         this.time.delayedCall(GameConfig.SHIELD_DURATION, () => {
             this.hasShield = false;
+            if (this.player.shieldTween) {
+                this.player.shieldTween.stop();
+                this.player.shieldTween = null;
+            }
             if (this.player.shield) {
                 this.player.shield.destroy();
                 this.player.shield = null;
