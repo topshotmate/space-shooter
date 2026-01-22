@@ -125,7 +125,34 @@ class GameScene extends Phaser.Scene {
             this.togglePause();
         });
 
+        // Debug: Z key to skip to boss wave
+        this.debugBossKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+        this.debugBossKey.on('down', () => {
+            this.skipToBossWave();
+        });
+
         console.log('Input handlers set up');
+    }
+
+    skipToBossWave() {
+        console.log('Skipping to boss wave...');
+
+        // Stop current timers
+        if (this.enemySpawnTimer) this.enemySpawnTimer.remove();
+        if (this.asteroidSpawnTimer) this.asteroidSpawnTimer.remove();
+
+        // Clear existing enemies
+        this.enemies.clear(true, true);
+        this.enemyBullets.clear(true, true);
+
+        // Set to boss wave
+        this.currentWave = 3;
+        this.isBossWave = true;
+        this.enemiesToKillThisWave = 0;
+        this.waveText.setText(`Wave: ${this.currentWave}`);
+
+        // Spawn boss directly
+        this.spawnBoss();
     }
 
     createBackground() {
@@ -457,11 +484,33 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnBoss() {
+        console.log('spawnBoss() called');
+
+        // Check if texture exists
+        if (!this.textures.exists('boss')) {
+            console.error('Boss texture not loaded!');
+            return;
+        }
+        console.log('Boss texture exists');
+
         // Create boss sprite
         this.boss = this.physics.add.sprite(GameConfig.WIDTH / 2, -100, 'boss');
+        console.log('Boss sprite created:', this.boss);
+        console.log('Boss position:', this.boss.x, this.boss.y);
+
         this.boss.setScale(0.8);
         this.boss.setDepth(10); // Ensure boss renders above background
-        this.boss.play('boss-idle');
+        this.boss.setVisible(true); // Ensure visible
+        this.boss.setActive(true); // Ensure active
+
+        // Try to play animation, fallback to first frame if it fails
+        try {
+            this.boss.play('boss-idle');
+            console.log('Boss animation started');
+        } catch (e) {
+            console.error('Boss animation failed:', e);
+            this.boss.setFrame(0);
+        }
 
         // Boss data
         this.boss.setData('health', GameConfig.BOSS_HEALTH);
@@ -473,10 +522,15 @@ class GameScene extends Phaser.Scene {
         // Move boss into position
         this.tweens.add({
             targets: this.boss,
-            y: 100,
+            y: 120,
             duration: 2000,
-            ease: 'Power2'
+            ease: 'Power2',
+            onComplete: () => {
+                console.log('Boss tween complete, position:', this.boss.x, this.boss.y);
+            }
         });
+
+        console.log('Boss tween started');
 
         // Setup boss collisions
         this.physics.add.overlap(this.bullets, this.boss, this.hitBoss, null, this);
