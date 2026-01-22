@@ -1161,8 +1161,14 @@ class GameScene extends Phaser.Scene {
     }
 
     hitPlayer(player, enemy) {
+        // Check if this is the boss
+        const isBoss = (enemy === this.boss);
+
         if (this.hasShield) {
-            enemy.destroy();
+            // Shield absorbs hit - only destroy if not boss
+            if (!isBoss) {
+                enemy.destroy();
+            }
             return;
         }
 
@@ -1172,7 +1178,10 @@ class GameScene extends Phaser.Scene {
         hit.play('hit-effect');
         hit.on('animationcomplete', () => hit.destroy());
 
-        enemy.destroy();
+        // Only destroy regular enemies, not the boss
+        if (!isBoss) {
+            enemy.destroy();
+        }
 
         this.damagePlayer();
     }
