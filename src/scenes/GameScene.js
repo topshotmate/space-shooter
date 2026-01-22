@@ -460,6 +460,7 @@ class GameScene extends Phaser.Scene {
         // Create boss sprite
         this.boss = this.physics.add.sprite(GameConfig.WIDTH / 2, -100, 'boss');
         this.boss.setScale(0.8);
+        this.boss.setDepth(10); // Ensure boss renders above background
         this.boss.play('boss-idle');
 
         // Boss data
@@ -616,6 +617,9 @@ class GameScene extends Phaser.Scene {
     }
 
     hitBoss(bullet, boss) {
+        // Skip if bullet already hit something
+        if (!bullet.active) return;
+
         // Screen shake
         this.cameras.main.shake(GameConfig.SCREEN_SHAKE_DURATION, GameConfig.SCREEN_SHAKE_INTENSITY * 0.001);
 
